@@ -18,8 +18,10 @@ type Pll a b = [IVar a] -> [IVar b] -> Par ()
 arr [] _ _ = return ()
 arr (f:fs) (i:is) (o:os) =
     do
-        fork $ fmap f (get i) >>= put o
+        fork $ ar f [i] [o] 
         arr fs is os
+
+ar f [i] [o] = fmap f (get i) >>= put o 
 
 -- | Compose two operations in parallel
 above u l is os =
@@ -41,7 +43,19 @@ besides (m,n) x y i o =
         x i interms
 
 -- | Collapse parallel operations
-collapse (m,n) x y i o = undefined
+collapse :: (NFData b) => (Int, Int) -> Pll a b -> Pll [b] c -> Pll a c
+collapse (m,n) x y i o =
+    do
+        ox <- sequence $ replicate m new
+        iy <- sequence $ replicate n new
+        fork $ y iy o
+        x i ox
+        fitInto (replicate n []) ox iy
+    where
+        fitInto xs [] iy = sequence_ (zipWith put iy xs)
+        fitInto xs ox iy =
+            do ox' <- mapM get (take (length iy) ox)
+               fitInto (zipWith (:) ox' xs) (drop (length iy) ox) iy  
 
 -- | Compose two operations in parallel
 (<|>) :: (NFData b) => Pll a b -> Pll a b -> Pll a b
@@ -50,7 +64,9 @@ collapse (m,n) x y i o = undefined
 -- | Compose two operations in sequence
 (<*) x d = \y i o -> besides d x y i o
 (*>) = ($)
+infixr 0 *>
 
 -- | Collapse parallel operations into fewer parallel operations
 (/*) x d = \y i o -> collapse d x y i o
-(*\) = ($)
+(*/) = ($)
+infixr 0 */
