@@ -16,19 +16,26 @@ import Debug.Trace
 type Pll a b = [IVar a] -> [IVar b] -> Par ()
 
 -- | Execute a list of pure actions
-arr [] _ _ = return ()
-arr (f:fs) (i:is) (o:os) =
+acts [] _ _ = return ()
+acts (f:fs) (i:is) (o:os) =
     do
-        fork $ ar f [i] [o] 
-        arr fs is os
+        fork $ act f [i] [o] 
+        acts fs is os
 
-ar f [i] [o] = fmap f (get i) >>= put o 
+-- Shorthand for just one action
+act f [i] [o] = fmap f (get i) >>= put o 
 
 -- | Compose two operations in parallel
 above (len, len') u l is os =
     do
         fork $ u (take len is) (take len' os)
         fork $ l (drop len is) (drop len' os) 
+
+-- | Compose several operations in parallel
+aboveL = combine above
+
+-- | General listed composition of operations
+combine f xs ys = foldr ($) (last ys) $ zipWith f xs (init ys)
 
 -- | Compose two operations in sequence
 besides (m,n) x y i o =
@@ -40,6 +47,9 @@ besides (m,n) x y i o =
         fork $ y (concat (replicate (n `div` m) interms)) o
         -- | Run the first computation
         x i interms
+
+-- | Compose several operations in sequence
+besidesL = combine besides
 
 -- | Collapse parallel operations
 collapse :: (NFData b) => (Int, Int) -> Pll a b -> Pll [b] c -> Pll a c
@@ -71,13 +81,22 @@ infixr 0 *>
 (/>) = ($)
 infixr 0 />
 
+-- Run a computation in the par monad, and only return the values produced in the end
+runInPar :: (NFData a) => Int -> Int -> Pll a b -> [a] -> [b]
+runInPar ins outs pll inputs = fst $ runPar $ do
+                                                is <- sequence $ replicate ins new
+                                                os <- sequence $ replicate outs new
+                                                sequence_ (zipWith put is inputs)
+                                                fork $ pll is os
+                                                sequence $ map get os
+
+
 -- An example
 -- The structure represented is
---      +-(+1)-+
--- (+1)-+-(*3)-+-sum
---      +-(/3)-+
+--               +-(+1)-+
+-- input -> (+1)-+-(*3)-+-sum -> output
+--               +-(/3)-+
 example :: Pll Double Double
-example = ar (+1) <*(1,3)*> ((ar (+1)  <|(1,1)|>
-                              ar (*3)) <|(2,2)|>
-                              ar (/3))
-          </(3,1)/> ar sum
+example = act (+1) <*(1,3)*>
+          (aboveL [(1,1), (1,1)] (map act [(+1), (*3), (/3)]))
+          </(3,1)/> act sum
