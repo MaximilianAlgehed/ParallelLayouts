@@ -1,10 +1,14 @@
 {-# LANGUAGE GADTs, TypeSynonymInstances #-}
 module ParallelLayout (
+
     Pll,
-    (<|),
-    (|>),
-    (<*),
-    (*>)
+
+    (<|), (|>),
+
+    (<*), (*>),
+
+    (</), (/>)
+
 )where
 import Prelude hiding ((<*), (*>))
 import Data.GraphViz hiding (Arrow)
@@ -19,7 +23,7 @@ type Pll a b = [IVar a] -> [IVar b] -> Par ()
 acts [] _ _ = return ()
 acts (f:fs) (i:is) (o:os) =
     do
-        fork $ act f [i] [o] 
+        act f [i] [o] 
         acts fs is os
 
 -- Shorthand for just one action
@@ -90,7 +94,6 @@ runInPar ins outs pll inputs = fst $ runPar $ do
                                                 fork $ pll is os
                                                 sequence $ map get os
 
-
 -- An example
 -- The structure represented is
 --               +-(+1)-+
@@ -98,5 +101,17 @@ runInPar ins outs pll inputs = fst $ runPar $ do
 --               +-(/3)-+
 example :: Pll Double Double
 example = act (+1) <*(1,3)*>
-          (aboveL [(1,1), (1,1)] (map act [(+1), (*3), (/3)]))
+          aboveL [(1,1), (1,1)] (map act [(+1), (*3), (/3)])
           </(3,1)/> act sum
+
+-- Constructing parallel prefix networks
+(>*>) :: (NFData a) => Pll a a -> Pll a a -> Pll a a
+(p1 >*> p2) is os = (p1' <*(n,n)*> p2') is os
+    where
+        p1' = (p1 <|(m,m)|> aboveL (replicate (n-m-1) (1,1)) (replicate (n-m) (act id)))
+        p2' = (aboveL (replicate (m-2) (1,1)) (replicate (m-1) (act id)) <|(m-1,m-1)|> p2)
+        n   = length is
+        m   = (n `div` 2) + 1
+
+test :: Pll Int Int
+test = (aboveL [(1,1), (1,1)] [act (+1), act (+1)]) >*> (aboveL [(1,1), (1,1)] [act (+1), act (+1)])
