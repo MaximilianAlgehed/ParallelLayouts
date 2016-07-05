@@ -1,3 +1,7 @@
+-- | This implementation of patterns for parallel programs
+-- | is a work in progress. It currently targets the Par monad
+-- | and is focused on expressability. Performance is lacking...
+-- | (i.e. it is the slowest thing on the face of the planet)
 {-# LANGUAGE GADTs, TypeSynonymInstances #-}
 module ParallelLayout (
 
@@ -13,6 +17,7 @@ module ParallelLayout (
 
 )where
 import Prelude hiding ((<*), (*>))
+import Test.QuickCheck
 import Data.GraphViz hiding (Arrow)
 import TraceInternal
 import Control.DeepSeq (NFData)
@@ -109,6 +114,9 @@ example = act (+1) >-> aboveL (map act [(+1), (*3), (/3)]) >/> act sum
 -- | Connect things in a parallel prefix manner.
 -- | If p and p' both compute parallel prefix of their input, then p>*>p' computes
 -- | parallel prefix of it's input
+--
+-- The function is very slow as it does not actually perform the operations in parallel,
+-- rather it performs the left operation first and then the right one...
 p@(_, (_, o1)) *>* p'@(_, (i2, _)) =
     (p -=- (aboveL (replicate (i2-1) (act id))))
     >->
@@ -116,4 +124,17 @@ p@(_, (_, o1)) *>* p'@(_, (i2, _)) =
 
 -- | The fan pattern
 fan :: (NFData a) => Pll (a,a) a -> Pll a a -> Pll a a
-fan fanout p@(_, (_, op)) = ((act id >-> aboveL (replicate (op+1) (act id))) -&- ((act id) -=- p)) >-> (act fst -=- fanout)
+fan fanout p@(_, (_, op)) =
+    (
+        act id >-> aboveL (replicate (op+1) (act id))
+        -&-
+        ((act id) -=- p)
+    ) >-> (act fst -=- fanout)
+
+-- | Primitive prefix sum
+prefix :: (NFData a) => Int -> ((a,a)->a) -> Pll a a
+prefix 1 _ = act id
+prefix n op = fan (aboveL (replicate (n-1) (act op))) (prefix (n-1) op)
+
+-- | Check that prefix meets the specification
+prop_prefix_scanl xs = length xs > 0 ==> tail (scanl (+) 0 xs) == runInPar (prefix (length xs) (uncurry (+))) xs
