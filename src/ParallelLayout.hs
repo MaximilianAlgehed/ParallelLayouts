@@ -3,12 +3,6 @@ module ParallelLayout (
 
     Pll,
 
-    (<|), (|>),
-
-    (<*), (*>),
-
-    (</), (/>)
-
 )where
 import Prelude hiding ((<*), (*>))
 import Data.GraphViz hiding (Arrow)
@@ -17,53 +11,46 @@ import Control.DeepSeq (NFData)
 import Debug.Trace
 
 -- Funky type for parallel computations
-type Pll a b = [IVar a] -> [IVar b] -> Par ()
-
--- | Execute a list of pure actions
-acts [] _ _ = return ()
-acts (f:fs) (i:is) (o:os) =
-    do
-        act f [i] [o] 
-        acts fs is os
+type Pll a b = ([IVar a] -> [IVar b] -> Par (), (Int, Int))
 
 -- Shorthand for just one action
-act f [i] [o] = fmap f (get i) >>= put o 
+act f = (\[i] [o] -> fmap f (get i) >>= put o, (1,1))
 
 -- | Compose two operations in parallel
-above (len, len') u l is os =
-    do
-        fork $ u (take len is) (take len' os)
-        fork $ l (drop len is) (drop len' os) 
+above (u, (inu, ou)) (l, (inl, ol)) =
+    ((\is os -> do
+        fork $ u (take inu is) (take ou os)
+        fork $ l (drop inu is) (drop ou os)), (inu+inl, ou+ol)) 
 
 -- | Compose several operations in parallel
-aboveL = combine above
-
--- | General listed composition of operations
-combine f xs ys = foldr ($) (last ys) $ zipWith f xs (init ys)
+aboveL :: [Pll a b] -> Pll a b
+aboveL = foldl1 above
 
 -- | Compose two operations in sequence
-besides (m,n) x y i o =
-    do
+besides (x, (ix,ox)) (y, (iy, oy)) =
+    (\i o -> do
         -- | The intermidate results
-        interms <- sequence $ replicate m new 
+        interms <- sequence $ replicate ox new 
         -- | Fork the second action with n/m repetitions of the
         -- | intermidiate results
-        fork $ y (concat (replicate (n `div` m) interms)) o
+        fork $ y (concat (replicate (iy `div` ox) interms)) o
         -- | Run the first computation
-        x i interms
+        x i interms, (ix, oy))
 
 -- | Compose several operations in sequence
-besidesL = combine besides
+besidesL :: [Pll a a] -> Pll a a
+besidesL = foldl1 besides
+
 
 -- | Collapse parallel operations
-collapse :: (NFData b) => (Int, Int) -> Pll a b -> Pll [b] c -> Pll a c
-collapse (m,n) x y i o =
-    do
-        ox <- sequence $ replicate m new
-        iy <- sequence $ replicate n new
+collapse :: (NFData b) => Pll a b -> Pll [b] c -> Pll a c
+collapse (x, (ixs, oxs)) (y, (iys, oys)) =
+    ((\i o -> do
+        ox <- sequence $ replicate oxs new
+        iy <- sequence $ replicate iys new
         fork $ y iy o
         x i ox
-        fitInto (replicate n []) ox iy
+        fitInto (replicate iys []) ox iy), (ixs, oys))
     where
         fitInto xs [] iy = sequence_ (zipWith put iy xs)
         fitInto xs ox iy =
@@ -71,47 +58,35 @@ collapse (m,n) x y i o =
                fitInto (zipWith (\x y -> y++[x]) ox' xs) (drop (length iy) ox) iy  
 
 -- | Compose two operations in parallel
-(<|) x d = \y i o -> above d x y i o
-(|>) = ($)
-infixr 0 |>
+(-=-) = above
 
 -- | Compose two operations in sequence
-(<*) x d = \y i o -> besides d x y i o
-(*>) = ($)
-infixr 0 *>
+(>->) = besides
 
--- | Collapse parallel operations into fewer parallel operations
-(</) x d = \y i o -> collapse d x y i o
-(/>) = ($)
-infixr 0 />
+-- | Collapse operations in to another operation
+(>/>) = collapse
 
 -- Run a computation in the par monad, and only return the values produced in the end
-runInPar :: (NFData a) => Int -> Int -> Pll a b -> [a] -> [b]
-runInPar ins outs pll inputs = fst $ runPar $ do
-                                                is <- sequence $ replicate ins new
-                                                os <- sequence $ replicate outs new
-                                                sequence_ (zipWith put is inputs)
-                                                fork $ pll is os
-                                                sequence $ map get os
+runInPar :: (NFData a) => Pll a b -> [a] -> [b]
+runInPar (pll, (ins, outs)) inputs = fst $ runPar $ do
+                                        is <- sequence $ replicate ins new
+                                        os <- sequence $ replicate outs new
+                                        sequence_ (zipWith put is inputs)
+                                        fork $ pll is os
+                                        sequence $ map get os
 
 -- An example
 -- The structure represented is
---               +-(+1)-+
+--               +-(+1)-+ 
 -- input -> (+1)-+-(*3)-+-sum -> output
 --               +-(/3)-+
 example :: Pll Double Double
-example = act (+1) <*(1,3)*>
-          aboveL [(1,1), (1,1)] (map act [(+1), (*3), (/3)])
-          </(3,1)/> act sum
+example = act (+1) >-> aboveL (map act [(+1), (*3), (/3)]) >/> act sum
 
--- Constructing parallel prefix networks
-(>*>) :: (NFData a) => Pll a a -> Pll a a -> Pll a a
-(p1 >*> p2) is os = (p1' <*(n,n)*> p2') is os
-    where
-        p1' = (p1 <|(m,m)|> aboveL (replicate (n-m-1) (1,1)) (replicate (n-m) (act id)))
-        p2' = (aboveL (replicate (m-2) (1,1)) (replicate (m-1) (act id)) <|(m-1,m-1)|> p2)
-        n   = length is
-        m   = (n `div` 2) + 1
-
-test :: Pll Int Int
-test = (aboveL [(1,1), (1,1)] [act (+1), act (+1)]) >*> (aboveL [(1,1), (1,1)] [act (+1), act (+1)])
+-- | Connect things in a parallel prefix manner.
+-- | If p and p' both compute parallel prefix of their input, then p>*>p' computes
+-- | parallel prefix of it's input
+p@(_, (_, o1)) >*> p'@(_, (i2, _)) =
+    (p -=- (aboveL (replicate (i2-1) (act id))))
+    >->
+    (aboveL (replicate (o1-1) (act id)) -=- p')
