@@ -3,6 +3,14 @@ module ParallelLayout (
 
     Pll,
 
+    (>->),
+
+    (-=-),
+
+    (>/>),
+
+    (*>*)
+
 )where
 import Prelude hiding ((<*), (*>))
 import Data.GraphViz hiding (Arrow)
@@ -41,7 +49,6 @@ besides (x, (ix,ox)) (y, (iy, oy)) =
 besidesL :: [Pll a a] -> Pll a a
 besidesL = foldl1 besides
 
-
 -- | Collapse parallel operations
 collapse :: (NFData b) => Pll a b -> Pll [b] c -> Pll a c
 collapse (x, (ixs, oxs)) (y, (iys, oys)) =
@@ -57,6 +64,18 @@ collapse (x, (ixs, oxs)) (y, (iys, oys)) =
             do ox' <- mapM get (take (length iy) ox)
                fitInto (zipWith (\x y -> y++[x]) ox' xs) (drop (length iy) ox) iy  
 
+-- | Overlay one operation on another
+overlay :: (NFData b, NFData c) => Pll a b -> Pll a c -> Pll a (b, c)
+overlay (x, (ix, ox)) (y, (iy, oy)) =
+    ((\is os -> do
+                 oxs <- sequence $ replicate ox new
+                 oys <- sequence $ replicate oy new
+                 fork $ x (take ix is) oxs
+                 fork $ y (take iy is) oys
+                 intermx <- sequence $ map get oxs
+                 intermy <- sequence $ map get oys
+                 sequence_ $ zipWith put os $ zip intermx intermy), (max ix iy, min ox oy))
+
 -- | Compose two operations in parallel
 (-=-) = above
 
@@ -65,6 +84,10 @@ collapse (x, (ixs, oxs)) (y, (iys, oys)) =
 
 -- | Collapse operations in to another operation
 (>/>) = collapse
+
+-- | Overlay one operation on another
+(-&-) :: (NFData b, NFData c) => Pll a b -> Pll a c -> Pll a (b, c)
+(-&-) = overlay
 
 -- Run a computation in the par monad, and only return the values produced in the end
 runInPar :: (NFData a) => Pll a b -> [a] -> [b]
@@ -86,7 +109,11 @@ example = act (+1) >-> aboveL (map act [(+1), (*3), (/3)]) >/> act sum
 -- | Connect things in a parallel prefix manner.
 -- | If p and p' both compute parallel prefix of their input, then p>*>p' computes
 -- | parallel prefix of it's input
-p@(_, (_, o1)) >*> p'@(_, (i2, _)) =
+p@(_, (_, o1)) *>* p'@(_, (i2, _)) =
     (p -=- (aboveL (replicate (i2-1) (act id))))
     >->
     (aboveL (replicate (o1-1) (act id)) -=- p')
+
+-- | The fan pattern
+fan :: (NFData a) => Pll (a,a) a -> Pll a a -> Pll a a
+fan fanout p@(_, (_, op)) = ((act id >-> aboveL (replicate (op+1) (act id))) -&- ((act id) -=- p)) >-> (act fst -=- fanout)
