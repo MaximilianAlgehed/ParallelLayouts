@@ -11,6 +11,8 @@ module ParallelLayout (
     belowL,
     belowN,
     pads,
+    evens,
+    odds,
     liftListOp,
     fan,
     riffle,
@@ -101,6 +103,14 @@ select n m = pads m -/- (act (!!n))
 
 -- Selection shorthand
 (-!-) = select
+
+-- | Apply op to even elements
+evens :: Int -> Pll (a,a) a -> Pll a a
+evens n op = belowN (n `div` 2) $ (pad ->- pads 2) -&- (pads 2) ->- (act fst -=- op)
+
+-- | Apply op to odd elements
+odds :: Int -> Pll (a,a) a -> Pll a a
+odds n op = pad -=- evens (n-2) op -=- pad
 
 -- An example
 -- The structure represented is
