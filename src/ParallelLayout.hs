@@ -15,6 +15,12 @@ module ParallelLayout (
 
     (*>*),
 
+    aboveL,
+
+    aboveN,
+
+    pads,
+
     fan,
 
     example,
@@ -48,14 +54,18 @@ instance Show (Layout a b) where
 -- Funky type for parallel computations
 type Pll a b = (Layout a b, (Int, Int))
 
+-- Pure action
 act f = (Pure f, (1,1))
 
+-- Many pure actions
 acts = map act
 
+-- Padding
 pad = (Pad, (1,1))
 
+-- Pad many times
 pads :: Int -> Pll a a
-pads n = aboveL (replicate n pad)
+pads n = aboveN n pad
 
 -- | Compose two operations in parallel
 above u@(_, (inu, ou)) l@(_, (inl, ol)) = (Above u l, (inu+inl, ou+ol)) 
@@ -63,6 +73,9 @@ above u@(_, (inu, ou)) l@(_, (inl, ol)) = (Above u l, (inu+inl, ou+ol))
 -- | Compose several operations in parallel
 aboveL :: [Pll a b] -> Pll a b
 aboveL = foldl1 above
+
+-- | Many aboves...
+aboveN n op = aboveL (replicate n op)
 
 -- | Compose two operations in sequence
 besides x@(_, (ix,ox)) y@(_, (iy, oy)) = (Besides x y, (ix, oy))
@@ -123,4 +136,4 @@ fan fanout p@(_, (_, op)) =
 -- | Primitive prefix sum
 prefix_fan :: Int -> ((a,a)->a) -> Pll a a
 prefix_fan 1 _  = pad 
-prefix_fan n op = fan (aboveL (replicate (n-1) (act op))) (prefix_fan (n-1) op)
+prefix_fan n op = fan (aboveN (n-1) (act op)) (prefix_fan (n-1) op)
