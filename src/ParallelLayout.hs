@@ -10,17 +10,21 @@ module ParallelLayout (
     (-!-),
     belowL,
     belowN,
+    pad,
     pads,
     evens,
     odds,
+    onOdd,
     liftListOp,
     fan,
     riffle,
     unriffle,
     interleave,
+    wrap,
     example,
     prefix_fan,
-    sklansky
+    sklansky,
+    ladF
 ) where
 import Data.List
 
@@ -57,6 +61,7 @@ pad = (Pad, (1,1))
 
 -- Pad many times
 pads :: Int -> Pll a a
+pads 0 = error "pads: Can't pad with 0 elements"
 pads n = belowN n pad
 
 -- | Compose two operations in parallel
@@ -67,6 +72,7 @@ belowL :: [Pll a b] -> Pll a b
 belowL = foldl1 below
 
 -- | Many belows...
+belowN 0 _  = error "belowN: Can't place 0 elements below each other"
 belowN n op = belowL (replicate n op)
 
 -- | Compose two operations in sequence
@@ -106,11 +112,18 @@ select n m = pads m -/- (act (!!n))
 
 -- | Apply op to even elements
 evens :: Int -> Pll (a,a) a -> Pll a a
-evens n op = belowN (n `div` 2) $ (pad ->- pads 2) -&- (pads 2) ->- (act fst -=- op)
+evens n op
+    | n <= 0    = error "evens: n <= 0"
+    | n == 1    = pad
+    | otherwise = belowN (n `div` 2) $ (pad ->- pads 2) -&- (pads 2) ->- (act fst -=- op)
 
 -- | Apply op to odd elements
 odds :: Int -> Pll (a,a) a -> Pll a a
-odds n op = pad -=- evens (n-2) op -=- pad
+odds 1 op       = pad
+odds 2 op       = ((pad ->- pads 2) -&- (pads 2)) ->- (act fst -=- op)
+odds n op
+    | n <= 0    = error "odds: n < 0"
+    | otherwise = pad -=- evens (n-2) op -=- pad
 
 -- An example
 -- The structure represented is
@@ -123,6 +136,7 @@ example = act (+1) ->- belowL (acts [(+1), (*3), (/3)]) -/- act sum
 -- | Connect things in a parallel prefix manner.
 -- | If p and p' both compute parallel prefix of their input, then p>*>p' computes
 -- | parallel prefix of it's input
+p@(_, (_, 1)) *>* p'@(_, (1, _))    = p ->- p'
 p@(_, (_, o1)) *>* p'@(_, (i2, _)) =
     (p -=- pads (i2-1))
     ->-
@@ -139,11 +153,15 @@ fan fanout p@(_, (_, op)) =
 
 -- | Allows list operations to be performed on a layout
 liftListOp :: Int -> ([a] -> [a]) -> Pll a a
-liftListOp n f = pads n -/- act f ->- belowL [act (!!i) | i <- [0..(n-1)]]
+liftListOp n f
+    | n <= 0 = error "Can't lift a list operation on empty lists"
+    | otherwise = pads n -/- act f ->- belowL [act (!!i) | i <- [0..(n-1)]]
 
 -- | Riffle a list
 riffle :: Int -> Pll a a
-riffle n = liftListOp n riffleList
+riffle n
+    | n <= 0    = error "Can't riffle less than or equal to 0 elements"
+    | otherwise = liftListOp n riffleList
     where
         riffleList lst = helper (take ((length lst) `div` 2) lst) (drop ((length lst) `div` 2) lst)
         helper [] xs = xs
@@ -152,9 +170,20 @@ riffle n = liftListOp n riffleList
 
 -- | Unriffle a list
 unriffle :: Int -> Pll a a
-unriffle n = liftListOp n unriffleList
+unriffle n
+    | n <= 0    = error "Can't unriffle less than or equal to 0 elements"
+    | otherwise = liftListOp n unriffleList
     where
         unriffleList xs = [x | (x, i) <- zip xs [0..], even i] ++ [x | (x,i) <- zip xs [0..], odd i]
+
+-- | Apply to the odd elements
+onOdd p@(_, (i, o)) = unriffle (2*i) ->- ((pads i ->- pads o) -=- p) ->- riffle (2*o)
+
+-- | wrapping
+wrap op circ@(_, (i, o))
+    | i <= 0    = error "wrap: can't wrap 0 inputs"
+    | o <= 0    = error "wrap: can't wrap 0 outputs"
+    | otherwise = evens (2*i) op ->- onOdd circ ->- odds (2*o) op
 
 -- | Interleave an operation
 interleave :: Pll a b -> Pll a b
@@ -178,3 +207,27 @@ sklansky op n = sklansky op ls *>* fan (belowN rs (act op)) (sklansky op rs)
                 n `div` 2 - 1
              else
                 n `div` 2
+
+-- | Ladner Fischer networks
+ladF :: ((a,a) -> a) -> Int -> Int -> Pll a a
+ladF op _ 1 = pad
+ladF op _ 2 = ((pad ->- pads 2) -&- pads 2) ->- (act fst -=- (act op))
+ladF op 0 n
+    | n <= 0    = error "ladF: Can't create a 0 width ladF network"
+    | otherwise = ladF op 1 ls *>* fan'
+        where
+            -- fan out
+            fan' = if rs <= 0 then
+                        pad
+                   else
+                        fan (belowN rs (act op)) (ladF op 0 rs)
+            ls = n `div` 2 + 1
+            -- fan pads with 1 on the left, so we need to reduce the size of
+            -- the right hand argument
+            rs = if even n then
+                    n `div` 2 - 1
+                 else
+                    n `div` 2
+ladF op k n 
+    | n <= 0    = error "ladF: Can't create a 0 width ladF network"
+    | otherwise = wrap (act op) (ladF op (k-1) (n `div` 2))
