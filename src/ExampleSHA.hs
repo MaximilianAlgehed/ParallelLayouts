@@ -12,7 +12,7 @@ applyRules nRules rules words = (rules' -&- words') ->- belowN nRules (act (uncu
 
 exampleApplyRules n = runSequential (applyRules 3 (act (\n -> [id, ('a':), (++"b")]!!n)) (act (\n -> ["hej", "nej"]!!n))) [n]
 
--- | Perform 64 rounds of sha with an intermidiate representation
+-- | Perform 64 rounds of the sha intermidiate round with an intermidiate representation
 sha :: Int -> (String -> a) -> (a -> a) -> (a -> String) -> Pll String String
 sha nPar toRep shaRound fromRep = belowN nPar ((act toRep) ->- (besidesN 64 (act shaRound)) ->- (act fromRep))
 
@@ -21,7 +21,7 @@ shaBlock :: Int -> (String -> a) -> (a -> a) -> (a -> String) -> Pll String (Str
 shaBlock nPar toRep shaRound fromRep = sha nPar toRep shaRound fromRep -&- pads nPar
 
 -- | Lookup the result of a computation in a dictionary
-lookupResults :: [String] -> Int -> Pll a (String, String) -> Pll a (Maybe String)
+lookupResults :: Int -> [String] -> Pll a (String, String) -> Pll a (Maybe String)
 lookupResults nPar dict src = src ->- act helper
     where
         helper (encr, plain) = if encr `elem` dict then Just plain else Nothing

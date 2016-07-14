@@ -12,6 +12,8 @@ module ParallelLayout (
     (-&-),
     belowL,
     belowN,
+    besidesL,
+    besidesN,
     pad,
     pads,
     evens,
@@ -87,6 +89,9 @@ besides x@(_, (ix,ox)) y@(_, (iy, oy)) = (Besides x y, (ix, oy))
 -- | Compose several operations in sequence
 besidesL :: [Pll a a] -> Pll a a
 besidesL = foldl1 besides
+
+besidesN 0 _ = error "besidesN: Can't place 0 elements in sequence"
+besidesN n op = besidesL (replicate n op)
 
 -- | Collapse parallel operations
 collapse :: Pll a b -> Pll [b] c -> Pll a c
