@@ -2,12 +2,14 @@
 module ParallelLayout (
     Pll,
     Layout(..),
+    Source,
     act,
     (->-),
     (-=-),
     (-/-),
     (*>*),
     (-!-),
+    (-&-),
     belowL,
     belowN,
     pad,
@@ -24,7 +26,8 @@ module ParallelLayout (
     example,
     prefix_fan,
     sklansky,
-    ladF
+    ladF,
+    spreadSource
 ) where
 import Data.List
 
@@ -49,6 +52,9 @@ instance Show (Layout a b) where
 
 -- Funky type for parallel computations
 type Pll a b = (Layout a b, (Int, Int))
+
+-- | A source of values in the form of a timeseries
+type Source a = Pll Int a
 
 -- Pure action
 act f = (Pure f, (1,1))
@@ -109,6 +115,10 @@ select n m = pads m -/- (act (!!n))
 
 -- Selection shorthand
 (-!-) = select
+
+-- Spread a source out
+spreadSource :: Int -> Source a -> Source a
+spreadSource n source = pad ->- belowL [act (i+) ->- source | i <- [0..(n-1)]]
 
 -- | Apply op to even elements
 evens :: Int -> Pll (a,a) a -> Pll a a

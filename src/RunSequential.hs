@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+module RunSequential where
 import Test.QuickCheck
 import ParallelLayout
 
