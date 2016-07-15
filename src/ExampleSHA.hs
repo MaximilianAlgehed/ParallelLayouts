@@ -1,6 +1,9 @@
 import ParallelLayout
 import RunSequential
 
+-- | a Pll implementation of the SHA 256 algorithm as described by
+-- | http://www.iwar.org.uk/comsec/resources/cipher/sha256-384-512.pdf
+
 type Rule = String -> String
 
 -- | Apply a series of rules to a series of words
