@@ -3,6 +3,8 @@ import RunSequential
 
 -- | a Pll implementation of the SHA 256 algorithm as described by
 -- | http://www.iwar.org.uk/comsec/resources/cipher/sha256-384-512.pdf
+-- | http://csrc.nist.gov/publications/fips/fips180-4/fips-180-4.pdf
+-- | used in the context of a password cracking program.
 
 type Rule = String -> String
 
