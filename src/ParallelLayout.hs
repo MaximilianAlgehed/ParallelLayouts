@@ -4,6 +4,9 @@ module ParallelLayout (
     Layout(..),
     Source,
     act,
+    acts,
+    ins,
+    outs,
     (->-),
     (-=-),
     (-/-),
@@ -54,6 +57,9 @@ instance Show (Layout a b) where
 
 -- Funky type for parallel computations
 type Pll a b = (Layout a b, (Int, Int))
+
+ins = fst . snd
+outs = snd . snd
 
 -- | A source of values in the form of a timeseries
 type Source a = Pll Int a
