@@ -4,11 +4,20 @@ import Test.QuickCheck
 import ParallelLayout
 
 runSequential :: Pll a b -> ([a] -> [b])
-runSequential ((Pure f), _)              (a:_) = [f a] 
-runSequential (Pad, _)                   (a:_) = [a]
-runSequential ((Below l@(_, (i, _)) l'), _)   as = (runSequential l (take i as)) ++ (runSequential l' (drop i as))
-runSequential ((Besides l@(_, (_, o)) l'@(_, (i, _))), _) as = (runSequential l') $ concat $ replicate (i `div` o) $ (runSequential l) as 
-runSequential ((Overlay l@(_, (i, _)) l'@(_, (i', _))), _) as = zip (runSequential l (take i as)) (runSequential l' (take i' as))
+runSequential (Fst, _) ((a, _):_) = [a]
+runSequential (Snd, _) ((_, a):_) = [a]
+runSequential (Fork,_) (a:_)      = [(a,a)]
+runSequential ((Pure f), _) (a:_) = [f a] 
+runSequential (Pad, _)      (a:_) = [a]
+runSequential ((Below l@(_, (i, _)) l'), _) as =
+    (runSequential l (take i as)) ++ (runSequential l' (drop i as))
+
+runSequential ((Besides l@(_, (_, o)) l'@(_, (i, _))), _) as =
+    (runSequential l') $ concat $ replicate (i `div` o) $ (runSequential l) as 
+
+runSequential ((Overlay l@(_, (i, _)) l'@(_, (i', _))), _) as =
+    zip (runSequential l (take i as)) (runSequential l' (take i' as))
+
 runSequential ((Collapse x@(_, (ixs, oxs)) y@(_, (iys, oys))), _) as = o
         where
             o = runSequential y iy

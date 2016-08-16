@@ -7,6 +7,9 @@ module ParallelLayout (
     acts,
     ins,
     outs,
+    fork,
+    frst,
+    scnd,
     (->-),
     (-=-),
     (-/-),
@@ -39,6 +42,9 @@ import Data.List
 -- | A type for layouts of circuits (parallel computations)
 data Layout a b where
     Pure     :: (a -> b) -> Layout a b
+    Fst      :: Layout (a, b) a
+    Snd      :: Layout (a, b) b
+    Fork     :: Layout a (a, a)
     Pad      :: Layout a a
     Below    :: Pll a b -> Pll a b -> Layout a b
     Besides  :: Pll a b -> Pll b c -> Layout a c
@@ -63,6 +69,10 @@ outs = snd . snd
 
 -- | A source of values in the form of a timeseries
 type Source a = Pll Int a
+
+frst = (Fst, (1,1))
+scnd = (Snd, (1,1))
+fork = (Fork, (1,1))
 
 -- Pure action
 act f = (Pure f, (1,1))
@@ -136,12 +146,12 @@ evens :: Int -> Pll (a,a) a -> Pll a a
 evens n op
     | n <= 0    = error "evens: n <= 0"
     | n == 1    = pad
-    | otherwise = belowN (n `div` 2) $ (pad ->- pads 2) -&- (pads 2) ->- (act fst -=- op)
+    | otherwise = belowN (n `div` 2) $ (pad ->- pads 2) -&- (pads 2) ->- (frst -=- op)
 
 -- | Apply op to odd elements
 odds :: Int -> Pll (a,a) a -> Pll a a
 odds 1 op       = pad
-odds 2 op       = ((pad ->- pads 2) -&- (pads 2)) ->- (act fst -=- op)
+odds 2 op       = ((pad ->- pads 2) -&- (pads 2)) ->- (frst -=- op)
 odds n op
     | n <= 0    = error "odds: n < 0"
     | otherwise = pad -=- evens (n-2) op -=- pad
