@@ -35,12 +35,15 @@ module ParallelLayout (
     prefix_fan,
     sklansky,
     ladF,
-    spreadSource
+    spreadSource,
+    atom,
+    on
 ) where
 import Data.List
 
 -- | A type for layouts of circuits (parallel computations)
 data Layout a b where
+    On       :: Maybe Int -> Layout a b -> Layout a b
     Pure     :: (a -> b) -> Layout a b
     Fst      :: Layout (a, b) a
     Snd      :: Layout (a, b) b
@@ -66,6 +69,9 @@ type Pll a b = (Layout a b, (Int, Int))
 
 ins = fst . snd
 outs = snd . snd
+
+atom = On Nothing
+p `on` i = On (Just i) p
 
 -- | A source of values in the form of a timeseries
 type Source a = Pll Int a
