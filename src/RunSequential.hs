@@ -3,7 +3,7 @@ module RunSequential where
 import Test.QuickCheck
 import ParallelLayout
 
-runSequential :: Pll a b -> ([a] -> [b])
+runSequential :: Pll a b -> [a] -> [b]
 runSequential (On _ p) xs = runSequential p xs
 runSequential (Fst, _) ((a, _):_) = [a]
 runSequential (Snd, _) ((_, a):_) = [a]
