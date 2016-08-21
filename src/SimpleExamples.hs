@@ -23,3 +23,10 @@ mVecMult xs = pad ->- (belowL . acts) [sum . (zipWith (*) x) | x <- xs] -/- pad
 -- | A layer in a neural network
 nnLayer :: (Num a) => (a -> a) -> [[a]] -> Pll [a] [a]
 nnLayer f xs = mVecMult xs ->- act (map f)
+
+-- | A MapReduce
+mapReduce :: Int -> Int -> (a -> b) -> (b -> b -> b) -> b -> Pll [a] b
+mapReduce m n f r e = result
+    where
+         result = foldl_ n (\xs ys -> [foldl r e (xs ++ ys)]) [] map_ ->- act head
+         map_   = belowN m $ act (map f)

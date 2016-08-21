@@ -4,7 +4,7 @@ import Test.QuickCheck
 import ParallelLayout
 
 runSequential :: Pll a b -> [a] -> [b]
-runSequential (On _ p) xs = runSequential p xs
+runSequential (On _ p, _) xs = runSequential p xs
 runSequential (Fst, _) ((a, _):_) = [a]
 runSequential (Snd, _) ((_, a):_) = [a]
 runSequential (Fork,_) (a:_)      = [(a,a)]

@@ -43,7 +43,7 @@ import Data.List
 
 -- | A type for layouts of circuits (parallel computations)
 data Layout a b where
-    On       :: Maybe Int -> Layout a b -> Layout a b
+    On       :: Maybe Int -> Pll a b -> Layout a b
     Pure     :: (a -> b) -> Layout a b
     Fst      :: Layout (a, b) a
     Snd      :: Layout (a, b) b

@@ -2,15 +2,10 @@ module RunThreadChan where
 import SimpleExamples
 import Control.Concurrent.Chan
 
--- TO DO:
--- Take in to account "On" mapping, maybe by
--- using a type like 
--- [Chan a] -> ([ThreadID] -> IO (), [Chan b])
--- or something like that
-type IR a b = [Chan a] -> (IO (), [Chan b])
+type IR a b = [Chan a] -> ((Int -> ThreadID) -> IO (), [Chan b])
 
-runThreadChan :: Pll a b -> [a] -> IO [b]
-runThreadChan p as = do
+runThreadChan :: Pll a b -> Int -> [a] -> IO [b]
+runThreadChan p n as = do
                         is <- sequence $ replicate (ins p) newChan
                         sequence_ $ zipWith putChan is as
                         let ir = runIR p is
