@@ -15,3 +15,16 @@
 
 ### Message passing
 * [Cloud Haskell](http://research.microsoft.com/en-us/um/people/simonpj/papers/parallel/remote.pdf)
+
+## Hardware
+
+### Layout
+* [Wired: Wire Aware Circuit Design](http://www.cse.chalmers.se/~emax/documents/Wired_CHARME05.pdf)
+
+## Programming Languages
+
+### NESL
+
+### Legion
+
+### Chapel
