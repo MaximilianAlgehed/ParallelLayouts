@@ -21,6 +21,16 @@
 ### Layout
 * [Wired: Wire Aware Circuit Design](http://www.cse.chalmers.se/~emax/documents/Wired_CHARME05.pdf)
 
+* [Ruby](https://www.doc.ic.ac.uk/~wl/teachlocal/cuscomp/notes/introRuby.pdf)
+
+* [Lava](http://www.cse.chalmers.se/edu/year/2012/course/_courses_2011/TDA956/Papers/Lava98.pdf)
+
+## GPU computing
+
+### DSLs
+
+* [Obsidian: GPU Programming in Haskell](http://www.cse.chalmers.se/~joels/writing/dccpaper_obsidian.pdf)
+
 ## Programming Languages
 
 ### NESL
@@ -39,3 +49,19 @@
     regions reside.
 
 ### Chapel
+
+## Misc (also knows as, "stuff I wasn't sure where to put!")
+
+* [Programming Heterogeneous Systems at Exascale](https://drive.google.com/open?id=0B1ytrVudfgrLVGJhamZZZ1JQdWNzOWk0ZzRWZGR2REx0akdN)
+
+* [A Distributed Haskell for the Modern Web](http://haste-lang.org/pubs/haste-licentiate.pdf)
+    Anton's lic thesis. This document is interesting because
+    of Haske's way of enabling the programming to play
+    with running code either on the client or the server
+    side of the web application. A limitation of the programming
+    model, in our context, is that the implementation of Haste
+    favours a master-slave relationship between the client
+    and the server, this is naturally due to the fact that
+    the primary focus of the programming model is about
+    IO-heavy "user experience" kind of applications,
+    not HPC.
