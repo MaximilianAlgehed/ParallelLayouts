@@ -25,6 +25,13 @@
 
 * [Lava](http://www.cse.chalmers.se/edu/year/2012/course/_courses_2011/TDA956/Papers/Lava98.pdf)
 
+* [Generating fast multiplyer using clever circuits](http://www.cse.chalmers.se/edu/year/2012/course/TDA956/Papers/Mult_FMCAD04.pdf)
+
+* [Finding regularity: describing and analysing circuits that are not quite regular](https://www.semanticscholar.org/paper/Finding-Regularity-Describing-and-Analysing-Sheeran/d40528e697b20d83d4a290bbeaf4088d93bcf75c/pdf)
+    My intuition tells me that shadow values should
+    somehow be usefulin both optimizing and constructing
+    data flow or similar types of constructions...
+
 ## GPU computing
 
 ### DSLs
