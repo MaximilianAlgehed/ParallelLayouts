@@ -4,6 +4,16 @@
 
 ### Variants on data flow 
 * [Dryad](http://www.news.cs.nyu.edu/~jinyang/sp07/papers/dryad.pdf)
+    Dryad is a Microsoft project that basically
+    defines a set of combinators for constructing
+    data flow graphs. The paper seems very fit for supercomputers
+    and large clusters. It features a short thing about graph
+    refinement (no technical detail though) at runtime to achieve
+    better performance etc. The technology seems to be
+    based on a scheduler of some sort or another, this is not discussed
+    in great detail. In general the paper lacks in technical depth.
+    This looks like the most promising data flow like thing for clusters
+    I have yet to see.
 
 * [Paralex](https://www.cs.utexas.edu/~lorenzo/papers/paralex.pdf)
 
