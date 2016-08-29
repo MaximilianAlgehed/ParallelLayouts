@@ -26,6 +26,22 @@
 ### Message passing
 * [Cloud Haskell](http://research.microsoft.com/en-us/um/people/simonpj/papers/parallel/remote.pdf)
 
+### Topology
+* [Managing the Topology of Heterogeneous Cluster Nodes with Hardware Locality (hwloc)](https://www.open-mpi.org/papers/hpcs-2014-hwloc/hpcs-2014-hwloc.pdf)
+
+* [ForestGOMP: an efficient OpenMP environment for NUMA architectures](https://hal.inria.fr/inria-00496295/document)
+    This paper tries to adress the need for mapping 
+    computations to cores in a large cluster based on
+    resource affinity. The mapping happens at runtime
+    and the core API for specifying affinity of memory
+    and other resources is highly imperative in nature.
+    By no means a bad paper, and I think that it would
+    be useful to take the contributions of this paper
+    and move them over to the more declarative world
+    of FP. Moreover proper support for MPI/OpenMP/GOMP
+    and this in Feldspar would go a long way to making
+    it useful outside of an embedded context.
+
 ## Hardware
 
 ### Layout
@@ -39,7 +55,7 @@
 
 * [Finding regularity: describing and analysing circuits that are not quite regular](https://www.semanticscholar.org/paper/Finding-Regularity-Describing-and-Analysing-Sheeran/d40528e697b20d83d4a290bbeaf4088d93bcf75c/pdf)
     My intuition tells me that shadow values should
-    somehow be usefulin both optimizing and constructing
+    somehow be useful in both optimizing and constructing
     data flow or similar types of constructions...
 
 ## GPU computing
@@ -72,7 +88,7 @@
 * [Programming Heterogeneous Systems at Exascale](https://drive.google.com/open?id=0B1ytrVudfgrLVGJhamZZZ1JQdWNzOWk0ZzRWZGR2REx0akdN)
 
 * [A Distributed Haskell for the Modern Web](http://haste-lang.org/pubs/haste-licentiate.pdf)
-    Anton's lic thesis. This document is interesting because
+    Anton's lic. thesis. This document is interesting because
     of Haske's way of enabling the programming to play
     with running code either on the client or the server
     side of the web application. A limitation of the programming
