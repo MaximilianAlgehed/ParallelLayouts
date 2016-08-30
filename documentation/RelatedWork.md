@@ -55,6 +55,14 @@
         interesting objects in the topology tree, it can then
         retrieve information from its attributes to adapt its
         behavior to the underlying hardware characteristics`
+    While this is an inspiering and possibly quite powerful
+    programming model, it is very bare metal and not very
+    declarative. However, the core issue I have with
+    it is that it is saying "Look, I don't know what the hardware
+    my program is going to run on looks like, so I guess I'll
+    make it up as I go along.", which I imagine will be less
+    and less useful as we get more and more heterogeneity
+    in our systems.
 
 ## Hardware
 
