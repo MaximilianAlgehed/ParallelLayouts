@@ -42,6 +42,20 @@
     and this in Feldspar would go a long way to making
     it useful outside of an embedded context.
 
+* [hwloc: A Generic Framework for Managing Hardware Affinities in HPC Applications](http://ieeexplore.ieee.org.proxy.lib.chalmers.se/document/5452445/?part=1)
+    This paper contains some information about the hwloc tool.
+    Furthermore it contains important notes on the types
+    of problems any systems that deal with machine topoogy aware
+    scheduling in the world of HPC needs to take in to account.
+    The programming model associated with the tool puts the
+    responsibility of choosing what to run where and adapting the
+    behaviour of the program in the hands of the application,
+    at runtime. A quote from the paper:
+        `Once the application or runtime system has found the
+        interesting objects in the topology tree, it can then
+        retrieve information from its attributes to adapt its
+        behavior to the underlying hardware characteristics`
+
 ## Hardware
 
 ### Layout
